@@ -32,7 +32,7 @@ export default function TransactionTable({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedPeriod, setSelectedPeriod] = useState('today')
   const [selectedBuse, setSelectedBuse] = useState('all')
-  const itemsPerPage = 3
+  const itemsPerPage = 4
 
   // Filtrer les transactions selon les sélecteurs
   const filteredTransactions = useMemo(() => {

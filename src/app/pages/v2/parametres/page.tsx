@@ -1,9 +1,9 @@
 'use client'
 import HeaderDefault from "@/components/ui/headers/HeaderDefault"
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { Plus, Trash2, Play, Wifi, WifiOff, Server, Database, TestTube, Save, Download, CloudCog, Cable, Settings2, RefreshCw, Eye, EyeOff, Key, User } from "lucide-react"
 import { useDispatch, useSelector } from 'react-redux'
-import mqtt, { MqttClient, IClientOptions } from 'mqtt'
+import mqtt, { MqttClient, IClientOptions, Packet } from 'mqtt'
 import { 
   updateConfig, 
   updateMqttAuth, 
@@ -20,8 +20,8 @@ import {
   resetStats,
   updateFuelData,
   updatePumpData,
-  updateCameraData,
-  addTransaction,
+  updateCamera1,
+  updateCamera2,
   RootState
 } from '@/store/store'
 
@@ -29,70 +29,96 @@ import {
 const useMqttActions = () => {
   const dispatch = useDispatch()
   const config = useSelector((state: RootState) => state.config)
+  const stationData = useSelector((state: RootState) => state.stationData)
   
   const mqttClient = useRef<MqttClient | null>(null)
 
   // Fonction pour traiter les messages MQTT et mettre à jour le store
-  const processMqttMessage = (topic: string, message: string) => {
+  const processMqttMessage = (topic: string, message: Buffer) => {
     try {
-      const data = JSON.parse(message)
+      const messageString = message.toString()
+      const data = JSON.parse(messageString)
       const topicParts = topic.split('/')
       const station = topicParts[1]
       const sensorType = topicParts[2]
 
       if (station === config.stationName) {
-        switch (sensorType) {
-          case 'essence1':
-            dispatch(updateFuelData({ type: 'essence1', value: data.value }))
-            dispatch(addTestResult(`⛽ Essence 1 mis à jour: ${data.value}L`))
-            break
-          case 'essence2':
-            dispatch(updateFuelData({ type: 'essence2', value: data.value }))
-            dispatch(addTestResult(`⛽ Essence 2 mis à jour: ${data.value}L`))
-            break
-          case 'petrol':
-            dispatch(updateFuelData({ type: 'petrol', value: data.value }))
-            dispatch(addTestResult(`⛽ Pétrol mis à jour: ${data.value}L`))
-            break
-          case 'gazoil':
-            dispatch(updateFuelData({ type: 'gazoil', value: data.value }))
-            dispatch(addTestResult(`⛽ Gazoil mis à jour: ${data.value}L`))
-            break
-          case 'pompe1':
-            dispatch(updatePumpData({ type: 'pompe1', value: data.value }))
-            dispatch(addTestResult(`⛽ Pompe 1 mis à jour: ${data.value}L`))
-            break
-          case 'pompe2':
-            dispatch(updatePumpData({ type: 'pompe2', value: data.value }))
-            dispatch(addTestResult(`⛽ Pompe 2 mis à jour: ${data.value}L`))
-            break
-          case 'pompe3':
-            dispatch(updatePumpData({ type: 'pompe3', value: data.value }))
-            dispatch(addTestResult(`⛽ Pompe 3 mis à jour: ${data.value}L`))
-            break
-          case 'pompe4':
-            dispatch(updatePumpData({ type: 'pompe4', value: data.value }))
-            dispatch(addTestResult(`⛽ Pompe 4 mis à jour: ${data.value}L`))
-            break
-          case 'camera1':
-            dispatch(updateCameraData({ type: 'camera1', value: data.imageUrl }))
-            dispatch(addTestResult(`📷 Camera 1 image mise à jour`))
-            break
-          case 'camera2':
-            dispatch(updateCameraData({ type: 'camera2', value: data.imageUrl }))
-            dispatch(addTestResult(`📷 Camera 2 image mise à jour`))
-            break
-          case 'transaction':
-            dispatch(addTransaction(data))
-            dispatch(addTestResult(`💳 Nouvelle transaction: ${data.montant} FCFA`))
-            break
-          default:
-            dispatch(addTestResult(`📨 Message reçu sur ${topic}: ${JSON.stringify(data)}`))
+        if (sensorType === 'data') {
+          // Traitement du format complet des données de la station
+          if (data.fuels) {
+            Object.entries(data.fuels).forEach(([fuelType, value]) => {
+              if (fuelType in stationData.fuels) {
+                dispatch(updateFuelData({ 
+                  type: fuelType as keyof typeof stationData.fuels, 
+                  value: value as number 
+                }))
+              }
+            })
+          }
+
+          if (data.pumps) {
+            Object.entries(data.pumps).forEach(([pumpType, value]) => {
+              if (pumpType in stationData.pumps) {
+                dispatch(updatePumpData({ 
+                  type: pumpType as keyof typeof stationData.pumps, 
+                  value: value as number 
+                }))
+              }
+            })
+          }
+
+          dispatch(addTestResult(`📊 Données station mises à jour`))
+        } else {
+          // Ancien format pour la rétrocompatibilité
+          switch (sensorType) {
+            case 'essence1':
+              dispatch(updateFuelData({ type: 'essence1', value: data.value }))
+              dispatch(addTestResult(`⛽ Essence 1 mis à jour: ${data.value}L`))
+              break
+            case 'essence2':
+              dispatch(updateFuelData({ type: 'essence2', value: data.value }))
+              dispatch(addTestResult(`⛽ Essence 2 mis à jour: ${data.value}L`))
+              break
+            case 'petrol':
+              dispatch(updateFuelData({ type: 'petrol', value: data.value }))
+              dispatch(addTestResult(`⛽ Pétrol mis à jour: ${data.value}L`))
+              break
+            case 'gazoil':
+              dispatch(updateFuelData({ type: 'gazoil', value: data.value }))
+              dispatch(addTestResult(`⛽ Gazoil mis à jour: ${data.value}L`))
+              break
+            case 'pompe1':
+              dispatch(updatePumpData({ type: 'pompe1', value: data.value }))
+              dispatch(addTestResult(`⛽ Pompe 1 mis à jour: ${data.value}L`))
+              break
+            case 'pompe2':
+              dispatch(updatePumpData({ type: 'pompe2', value: data.value }))
+              dispatch(addTestResult(`⛽ Pompe 2 mis à jour: ${data.value}L`))
+              break
+            case 'pompe3':
+              dispatch(updatePumpData({ type: 'pompe3', value: data.value }))
+              dispatch(addTestResult(`⛽ Pompe 3 mis à jour: ${data.value}L`))
+              break
+            case 'pompe4':
+              dispatch(updatePumpData({ type: 'pompe4', value: data.value }))
+              dispatch(addTestResult(`⛽ Pompe 4 mis à jour: ${data.value}L`))
+              break
+            case 'camera1':
+              dispatch(updateCamera1(data.imageUrl))
+              dispatch(addTestResult(`📷 Camera 1 image mise à jour`))
+              break
+            case 'camera2':
+              dispatch(updateCamera2(data.imageUrl))
+              dispatch(addTestResult(`📷 Camera 2 image mise à jour`))
+              break
+            default:
+              dispatch(addTestResult(`📨 Message reçu sur ${topic}: ${JSON.stringify(data)}`))
+          }
         }
       }
     } catch (error) {
       console.error('Error processing MQTT message:', error)
-      dispatch(addTestResult(`❌ Erreur de traitement du message: ${error}`))
+      dispatch(addTestResult(`❌ Erreur de traitement du message: ${error instanceof Error ? error.message : String(error)}`))
     }
   }
 
@@ -116,7 +142,7 @@ const useMqttActions = () => {
         clientId: config.mqttAuth.clientId,
         clean: true,
         connectTimeout: 4000,
-        reconnectPeriod: 1000, // Activation de la reconnexion automatique
+        reconnectPeriod: 1000,
       }
 
       // Ajouter l'authentification si fournie
@@ -129,7 +155,7 @@ const useMqttActions = () => {
 
       mqttClient.current = mqtt.connect(config.mqttUrl, options)
       
-      mqttClient.current.on('connect', () => {
+      mqttClient.current.on('connect', (packet: Packet) => {
         dispatch(setConnected(true))
         dispatch(addTestResult('✅ Connexion MQTT établie'))
         
@@ -142,7 +168,7 @@ const useMqttActions = () => {
         
         // S'abonner à tous les topics
         config.topics.forEach((topic) => {
-          mqttClient.current?.subscribe(topic.value, { qos: topic.qos }, (error) => {
+          mqttClient.current?.subscribe(topic.value, { qos: topic.qos }, (error: Error | null) => {
             if (error) {
               dispatch(addTestResult(`❌ Erreur d'abonnement à ${topic.value}: ${error.message}`))
             } else {
@@ -152,12 +178,10 @@ const useMqttActions = () => {
         })
       })
 
-      mqttClient.current.on('message', (topic, message) => {
+      mqttClient.current.on('message', (topic: string, message: Buffer, packet: Packet) => {
         const messageString = message.toString()
         dispatch(incrementMessagesReceived())
-        
-        // Traiter le message pour mettre à jour le store
-        processMqttMessage(topic, messageString)
+        processMqttMessage(topic, message)
       })
 
       mqttClient.current.on('close', () => {
@@ -165,10 +189,9 @@ const useMqttActions = () => {
         dispatch(addTestResult('❌ Connexion MQTT fermée'))
       })
 
-      mqttClient.current.on('error', (error) => {
+      mqttClient.current.on('error', (error: Error) => {
         dispatch(setConnectionError())
         dispatch(addTestResult(`❌ Erreur MQTT: ${error.message}`))
-        dispatch(addTestResult('💡 Vérifiez les paramètres de connexion'))
       })
 
       mqttClient.current.on('offline', () => {
@@ -183,7 +206,7 @@ const useMqttActions = () => {
 
     } catch (error) {
       dispatch(setConnectionError())
-      dispatch(addTestResult(`❌ Erreur de création de connexion: ${error}`))
+      dispatch(addTestResult(`❌ Erreur de création de connexion: ${error instanceof Error ? error.message : String(error)}`))
     }
   }
 
@@ -194,7 +217,7 @@ const useMqttActions = () => {
           message: testMessage,
           timestamp: new Date().toISOString(),
           station: config.stationName,
-          value: Math.random() * 1000 // Valeur aléatoire pour les tests
+          value: Math.random() * 1000
         }
         
         mqttClient.current!.publish(
@@ -248,7 +271,7 @@ const useApiActions = () => {
       const data = await response.json()
       dispatch(addTestResult(`✅ REST: ${JSON.stringify(data)}`))
     } catch (error) {
-      dispatch(addTestResult(`❌ Erreur REST: ${error}`))
+      dispatch(addTestResult(`❌ Erreur REST: ${error instanceof Error ? error.message : String(error)}`))
     }
   }
 
@@ -266,7 +289,7 @@ const useApiActions = () => {
       const data = await response.json()
       dispatch(addTestResult(`✅ GraphQL: ${JSON.stringify(data)}`))
     } catch (error) {
-      dispatch(addTestResult(`❌ Erreur GraphQL: ${error}`))
+      dispatch(addTestResult(`❌ Erreur GraphQL: ${error instanceof Error ? error.message : String(error)}`))
     }
   }
 
@@ -286,7 +309,7 @@ export default function SettingsPage() {
   const [testMessage, setTestMessage] = useState('Test message from React App')
   const [showPassword, setShowPassword] = useState(false)
 
-  const { connectMqtt, sendTestMessage, disconnectMqtt, isConnected } = useMqttActions()
+  const { connectMqtt, sendTestMessage, disconnectMqtt, mqttClient, isConnected } = useMqttActions()
   const { testRestApi, testGraphql } = useApiActions()
 
   const handleInputChange = (field: keyof typeof config, value: string | boolean) => {
@@ -332,7 +355,7 @@ export default function SettingsPage() {
         dispatch(updateConfig(savedConfig))
         dispatch(addTestResult('📂 Configuration chargée'))
       } catch (error) {
-        dispatch(addTestResult('❌ Erreur lors du chargement de la configuration'))
+        dispatch(addTestResult(`❌ Erreur lors du chargement de la configuration: ${error instanceof Error ? error.message : String(error)}`))
       }
     } else {
       dispatch(addTestResult('ℹ️ Aucune configuration sauvegardée'))
@@ -359,6 +382,46 @@ export default function SettingsPage() {
     const newClientId = `react-client-${Math.random().toString(16).substr(2, 8)}`
     handleMqttAuthChange('clientId', newClientId)
     dispatch(addTestResult(`🆔 Nouveau Client ID généré: ${newClientId}`))
+  }
+
+  // Fonction pour envoyer des données de test au format complet
+  const sendTestDataMessage = () => {
+    if (mqttClient && mqttClient.connected) {
+      const testData = {
+        station: config.stationName,
+        timestamp: new Date().toISOString(),
+        fuels: {
+          essence1: Math.floor(Math.random() * 1000),
+          essence2: Math.floor(Math.random() * 1000),
+          petrol: Math.floor(Math.random() * 2000),
+          gazoil: Math.floor(Math.random() * 2000)
+        },
+        pumps: {
+          pompe1: Math.floor(Math.random() * 100),
+          pompe2: Math.floor(Math.random() * 100),
+          pompe3: Math.floor(Math.random() * 100),
+          pompe4: Math.floor(Math.random() * 100)
+        },
+        status: "online",
+        temperature: 25 + Math.random() * 10,
+        humidity: 40 + Math.random() * 40,
+        pressure: 1000 + Math.random() * 30,
+        battery: 80 + Math.random() * 20,
+        uptime: 86400 + Math.floor(Math.random() * 10000),
+        version: "1.2.3"
+      }
+
+      const dataTopic = `astralogic/${config.stationName}/data`
+      mqttClient.publish(
+        dataTopic, 
+        JSON.stringify(testData), 
+        { qos: 1, retain: false }
+      )
+      dispatch(incrementMessagesSent())
+      dispatch(addTestResult(`📤 Données test envoyées sur ${dataTopic}`))
+    } else {
+      dispatch(addTestResult('❌ Impossible d\'envoyer - connexion non établie'))
+    }
   }
 
   const getConnectionStatusClass = () => {
@@ -401,7 +464,7 @@ export default function SettingsPage() {
       />
 
       <div className="p-4 space-y-4">
-        {/* Navigation par onglets compacte */}
+        {/* Navigation par onglets */}
         <div className="flex border-b border-[#2c3235] text-sm">
           <button
             onClick={() => setActiveTab('mqtt')}
@@ -426,7 +489,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Configuration de base compacte */}
+        {/* Configuration de base */}
         <div className="bg-[#202226] rounded border border-[#2c3235] p-4">
           <h2 className="text-md font-semibold mb-3 flex items-center gap-2">
             <Settings2 className="w-4 h-4" />
@@ -459,7 +522,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Contenu des onglets compact */}
+        {/* Contenu des onglets */}
         {activeTab === 'mqtt' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Panel Configuration MQTT */}
@@ -479,10 +542,6 @@ export default function SettingsPage() {
                     className="w-full bg-[#2c3235] border border-[#3a3f47] rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#33a2e5]"
                     placeholder="ws:// ou wss://"
                   />
-                  <p className="text-xs text-[#8e9297] mt-1">
-                    Exemples: <span className="text-[#33a2e5]">ws://localhost:9001</span>,{' '}
-                    <span className="text-[#33a2e5]">wss://broker.emqx.io:8084/mqtt</span>
-                  </p>
                 </div>
 
                 <div>
@@ -539,16 +598,6 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-4 p-3 bg-[#2c3235] rounded text-xs">
-                <h3 className="font-medium mb-2">Conseils de connexion:</h3>
-                <ul className="list-disc list-inside space-y-1 text-[#8e9297]">
-                  <li><strong>ws://</strong> - WebSocket non sécurisé (port 9001)</li>
-                  <li><strong>wss://</strong> - WebSocket sécurisé (port 8084)</li>
-                  <li>Client ID doit être unique par connexion</li>
-                  <li>Laissez username/password vide pour les brokers publics</li>
-                </ul>
               </div>
             </div>
 
@@ -678,6 +727,15 @@ export default function SettingsPage() {
               </button>
 
               <button
+                onClick={sendTestDataMessage}
+                className="px-3 py-1 bg-blue-600 rounded hover:bg-blue-700 transition-colors flex items-center gap-1 text-xs"
+                disabled={!isConnected}
+              >
+                <Database className="w-3 h-3" />
+                Données Test
+              </button>
+
+              <button
                 onClick={disconnectMqtt}
                 className="px-3 py-1 bg-red-600 rounded hover:bg-red-700 transition-colors flex items-center gap-1 text-xs"
                 disabled={!connection.isConnected}
@@ -799,7 +857,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Boutons sauvegarde/chargement compact */}
+        {/* Boutons sauvegarde/chargement */}
         <div className="flex gap-2">
           <button
             onClick={saveConfiguration}

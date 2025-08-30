@@ -37,10 +37,6 @@ export interface ConnectionState {
 }
 
 export interface StationData {
-  cameras: {
-    camera1: string
-    camera2: string
-  }
   fuels: {
     essence1: number
     essence2: number
@@ -53,8 +49,12 @@ export interface StationData {
     pompe3: number
     pompe4: number
   }
-  sales: any[]
-  transactions: any[]
+  lastUpdate: number
+}
+
+export interface CameraData {
+  camera1: string
+  camera2: string
   lastUpdate: number
 }
 
@@ -67,9 +67,9 @@ const configSlice = createSlice({
     graphqlUrl: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3001/graphql',
     stationName: 'Station_Logbessou',
     topics: [
-      { id: '1', value: 'astralogic/Station_Logbessou/camera1', qos: 0, retain: false },
-      { id: '2', value: 'astralogic/Station_Logbessou/camera2', qos: 0, retain: false },
-      { id: '3', value: 'astralogic/Station_Logbessou/data', qos: 1, retain: false }
+      { id: '1', value: 'astralogic/Station_Logbessou/data', qos: 1, retain: false },
+      { id: '2', value: 'astralogic/Station_Logbessou/camera1', qos: 0, retain: false },
+      { id: '3', value: 'astralogic/Station_Logbessou/camera2', qos: 0, retain: false }
     ],
     saveToDatabase: true,
     mqttAuth: {
@@ -152,14 +152,10 @@ const connectionSlice = createSlice({
   }
 })
 
-// Slice pour les données de la station
+// Slice pour les données de la station (carburants et pompes)
 const stationDataSlice = createSlice({
   name: 'stationData',
   initialState: {
-    cameras: {
-      camera1: "/assets/images/camera-placeholder.jpg",
-      camera2: "/assets/images/camera-placeholder.jpg"
-    },
     fuels: {
       essence1: 450,
       essence2: 250,
@@ -172,27 +168,6 @@ const stationDataSlice = createSlice({
       pompe3: 89,
       pompe4: 23
     },
-    sales: [
-      { x: '06:00', y: 150 },
-      { x: '07:00', y: 280 },
-      { x: '08:00', y: 420 },
-      { x: '09:00', y: 380 },
-      { x: '10:00', y: 500 }
-    ],
-    transactions: [
-      {
-        id: 1,
-        date: '2024-01-15',
-        time: '08:30',
-        buse: 'Gasoil',
-        transaction: 'Vente',
-        quantite: 45.5,
-        prixUnitaire: 650,
-        montant: 29575,
-        quantiteRestante: 1200,
-        serveur: 'Serveur1'
-      }
-    ],
     lastUpdate: Date.now()
   } as StationData,
   reducers: {
@@ -208,24 +183,28 @@ const stationDataSlice = createSlice({
       const { type, value } = action.payload
       state.pumps[type] = value
       state.lastUpdate = Date.now()
+    }
+  }
+})
+
+// Slice pour les données des caméras
+const cameraDataSlice = createSlice({
+  name: 'cameraData',
+  initialState: {
+    camera1: "/assets/images/camera-placeholder.jpg",
+    camera2: "/assets/images/camera-placeholder.jpg",
+    lastUpdate: Date.now()
+  } as CameraData,
+  reducers: {
+    updateCameraData: (state, action: PayloadAction<Partial<CameraData>>) => {
+      return { ...state, ...action.payload, lastUpdate: Date.now() }
     },
-    updateCameraData: (state, action: PayloadAction<{ type: keyof StationData['cameras']; value: string }>) => {
-      const { type, value } = action.payload
-      state.cameras[type] = value
+    updateCamera1: (state, action: PayloadAction<string>) => {
+      state.camera1 = action.payload
       state.lastUpdate = Date.now()
     },
-    addTransaction: (state, action: PayloadAction<any>) => {
-      state.transactions.unshift(action.payload)
-      if (state.transactions.length > 50) {
-        state.transactions = state.transactions.slice(0, 50)
-      }
-      state.lastUpdate = Date.now()
-    },
-    addSale: (state, action: PayloadAction<any>) => {
-      state.sales.push(action.payload)
-      if (state.sales.length > 100) {
-        state.sales = state.sales.slice(-100)
-      }
+    updateCamera2: (state, action: PayloadAction<string>) => {
+      state.camera2 = action.payload
       state.lastUpdate = Date.now()
     }
   }
@@ -236,7 +215,8 @@ export const store = configureStore({
   reducer: {
     config: configSlice.reducer,
     connection: connectionSlice.reducer,
-    stationData: stationDataSlice.reducer
+    stationData: stationDataSlice.reducer,
+    cameraData: cameraDataSlice.reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -269,11 +249,14 @@ export const {
 export const { 
   updateStationData, 
   updateFuelData, 
-  updatePumpData, 
-  updateCameraData, 
-  addTransaction,
-  addSale
+  updatePumpData
 } = stationDataSlice.actions
+
+export const { 
+  updateCameraData,
+  updateCamera1,
+  updateCamera2
+} = cameraDataSlice.actions
 
 // Types
 export type RootState = ReturnType<typeof store.getState>
