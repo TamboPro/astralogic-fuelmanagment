@@ -2,155 +2,14 @@
 import HeaderDefault from "@/components/ui/headers/HeaderDefault"
 import { useState, useEffect, useRef } from "react"
 import { Plus, Trash2, Play, Wifi, WifiOff, Server, Database, TestTube, Save, Download, CloudCog, Cable, Settings2, RefreshCw, Eye, EyeOff, Key, User } from "lucide-react"
-import { Provider, useDispatch, useSelector } from 'react-redux'
-import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { useDispatch, useSelector } from 'react-redux'
 import mqtt, { MqttClient, IClientOptions } from 'mqtt'
-
-interface Topic {
-  id: string
-  value: string
-  qos: 0 | 1 | 2
-  retain: boolean
-}
-
-interface MqttAuth {
-  username: string
-  password: string
-  clientId: string
-}
-
-interface ConnectionConfig {
-  mqttUrl: string
-  restUrl: string
-  graphqlUrl: string
-  stationName: string
-  topics: Topic[]
-  saveToDatabase: boolean
-  mqttAuth: MqttAuth
-}
-
-// Slice Redux pour la configuration
-const configSlice = createSlice({
-  name: 'config',
-  initialState: {
-    mqttUrl: 'ws://broker.emqx.io:8083/mqtt',
-    restUrl: process.env.NEXT_PUBLIC_REST_URL || 'http://localhost:3001/api',
-    graphqlUrl: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3001/graphql',
-    stationName: 'Station_Logbessou',
-    topics: [
-      { id: '1', value: 'astralogic/Station_Logbessou/camera1', qos: 0, retain: false },
-      { id: '2', value: 'astralogic/Station_Logbessou/camera2', qos: 0, retain: false },
-      { id: '3', value: 'astralogic/Station_Logbessou/essence1', qos: 1, retain: false }
-    ],
-    saveToDatabase: true,
-    mqttAuth: {
-      username: '',
-      password: '',
-      clientId: `react-client-${Math.random().toString(16).substr(2, 8)}`
-    }
-  } as ConnectionConfig,
-  reducers: {
-    updateConfig: (state, action: PayloadAction<Partial<ConnectionConfig>>) => {
-      return { ...state, ...action.payload }
-    },
-    updateMqttAuth: (state, action: PayloadAction<Partial<MqttAuth>>) => {
-      state.mqttAuth = { ...state.mqttAuth, ...action.payload }
-    },
-    updateTopic: (state, action: PayloadAction<{ id: string; field: keyof Topic; value: string | number | boolean }>) => {
-      const { id, field, value } = action.payload
-      state.topics = state.topics.map(topic => 
-        topic.id === id ? { ...topic, [field]: value } : topic
-      )
-    },
-    addTopic: (state, action: PayloadAction<Topic>) => {
-      if (state.topics.length < 15) {
-        state.topics.push(action.payload)
-      }
-    },
-    removeTopic: (state, action: PayloadAction<string>) => {
-      state.topics = state.topics.filter(topic => topic.id !== action.payload)
-    }
-  }
-})
-
-// Slice Redux pour les connexions
-interface ConnectionState {
-  isConnected: boolean
-  testResults: string[]
-  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error'
-  connectionStats: {
-    messagesSent: number
-    messagesReceived: number
-    lastMessageTimestamp: number | null
-  }
-}
-
-const connectionSlice = createSlice({
-  name: 'connection',
-  initialState: {
-    isConnected: false,
-    testResults: [],
-    connectionStatus: 'disconnected',
-    connectionStats: {
-      messagesSent: 0,
-      messagesReceived: 0,
-      lastMessageTimestamp: null
-    }
-  } as ConnectionState,
-  reducers: {
-    setConnected: (state, action: PayloadAction<boolean>) => {
-      state.isConnected = action.payload
-      state.connectionStatus = action.payload ? 'connected' : 'disconnected'
-    },
-    setConnecting: (state) => {
-      state.connectionStatus = 'connecting'
-    },
-    setConnectionError: (state) => {
-      state.connectionStatus = 'error'
-    },
-    addTestResult: (state, action: PayloadAction<string>) => {
-      state.testResults.push(action.payload)
-      if (state.testResults.length > 20) {
-        state.testResults = state.testResults.slice(-20)
-      }
-    },
-    clearTestResults: (state) => {
-      state.testResults = []
-    },
-    incrementMessagesSent: (state) => {
-      state.connectionStats.messagesSent += 1
-      state.connectionStats.lastMessageTimestamp = Date.now()
-    },
-    incrementMessagesReceived: (state) => {
-      state.connectionStats.messagesReceived += 1
-    },
-    resetStats: (state) => {
-      state.connectionStats = {
-        messagesSent: 0,
-        messagesReceived: 0,
-        lastMessageTimestamp: null
-      }
-    }
-  }
-})
-
-// Configuration du store Redux
-const store = configureStore({
-  reducer: {
-    config: configSlice.reducer,
-    connection: connectionSlice.reducer
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredPaths: ['config.topics'],
-      },
-    }),
-})
-
-// Actions exportées
-export const { updateConfig, updateMqttAuth, updateTopic, addTopic, removeTopic } = configSlice.actions
-export const { 
+import { 
+  updateConfig, 
+  updateMqttAuth, 
+  updateTopic, 
+  addTopic, 
+  removeTopic,
   setConnected, 
   setConnecting, 
   setConnectionError, 
@@ -158,14 +17,13 @@ export const {
   clearTestResults, 
   incrementMessagesSent, 
   incrementMessagesReceived,
-  resetStats
-} = connectionSlice.actions
-
-// Types pour le state Redux
-interface RootState {
-  config: ConnectionConfig
-  connection: ConnectionState
-}
+  resetStats,
+  updateFuelData,
+  updatePumpData,
+  updateCameraData,
+  addTransaction,
+  RootState
+} from '@/store/store'
 
 // Hook personnalisé pour les actions MQTT avec mqtt.js
 const useMqttActions = () => {
@@ -174,8 +32,77 @@ const useMqttActions = () => {
   
   const mqttClient = useRef<MqttClient | null>(null)
 
+  // Fonction pour traiter les messages MQTT et mettre à jour le store
+  const processMqttMessage = (topic: string, message: string) => {
+    try {
+      const data = JSON.parse(message)
+      const topicParts = topic.split('/')
+      const station = topicParts[1]
+      const sensorType = topicParts[2]
+
+      if (station === config.stationName) {
+        switch (sensorType) {
+          case 'essence1':
+            dispatch(updateFuelData({ type: 'essence1', value: data.value }))
+            dispatch(addTestResult(`⛽ Essence 1 mis à jour: ${data.value}L`))
+            break
+          case 'essence2':
+            dispatch(updateFuelData({ type: 'essence2', value: data.value }))
+            dispatch(addTestResult(`⛽ Essence 2 mis à jour: ${data.value}L`))
+            break
+          case 'petrol':
+            dispatch(updateFuelData({ type: 'petrol', value: data.value }))
+            dispatch(addTestResult(`⛽ Pétrol mis à jour: ${data.value}L`))
+            break
+          case 'gazoil':
+            dispatch(updateFuelData({ type: 'gazoil', value: data.value }))
+            dispatch(addTestResult(`⛽ Gazoil mis à jour: ${data.value}L`))
+            break
+          case 'pompe1':
+            dispatch(updatePumpData({ type: 'pompe1', value: data.value }))
+            dispatch(addTestResult(`⛽ Pompe 1 mis à jour: ${data.value}L`))
+            break
+          case 'pompe2':
+            dispatch(updatePumpData({ type: 'pompe2', value: data.value }))
+            dispatch(addTestResult(`⛽ Pompe 2 mis à jour: ${data.value}L`))
+            break
+          case 'pompe3':
+            dispatch(updatePumpData({ type: 'pompe3', value: data.value }))
+            dispatch(addTestResult(`⛽ Pompe 3 mis à jour: ${data.value}L`))
+            break
+          case 'pompe4':
+            dispatch(updatePumpData({ type: 'pompe4', value: data.value }))
+            dispatch(addTestResult(`⛽ Pompe 4 mis à jour: ${data.value}L`))
+            break
+          case 'camera1':
+            dispatch(updateCameraData({ type: 'camera1', value: data.imageUrl }))
+            dispatch(addTestResult(`📷 Camera 1 image mise à jour`))
+            break
+          case 'camera2':
+            dispatch(updateCameraData({ type: 'camera2', value: data.imageUrl }))
+            dispatch(addTestResult(`📷 Camera 2 image mise à jour`))
+            break
+          case 'transaction':
+            dispatch(addTransaction(data))
+            dispatch(addTestResult(`💳 Nouvelle transaction: ${data.montant} FCFA`))
+            break
+          default:
+            dispatch(addTestResult(`📨 Message reçu sur ${topic}: ${JSON.stringify(data)}`))
+        }
+      }
+    } catch (error) {
+      console.error('Error processing MQTT message:', error)
+      dispatch(addTestResult(`❌ Erreur de traitement du message: ${error}`))
+    }
+  }
+
   const connectMqtt = () => {
     try {
+      if (mqttClient.current && mqttClient.current.connected) {
+        dispatch(addTestResult('✅ Déjà connecté au broker MQTT'))
+        return
+      }
+
       if (mqttClient.current) {
         mqttClient.current.end()
         mqttClient.current = null
@@ -189,7 +116,7 @@ const useMqttActions = () => {
         clientId: config.mqttAuth.clientId,
         clean: true,
         connectTimeout: 4000,
-        reconnectPeriod: 0, // Désactive la reconnexion automatique
+        reconnectPeriod: 1000, // Activation de la reconnexion automatique
       }
 
       // Ajouter l'authentification si fournie
@@ -214,7 +141,7 @@ const useMqttActions = () => {
         }
         
         // S'abonner à tous les topics
-        config.topics.forEach((topic: Topic) => {
+        config.topics.forEach((topic) => {
           mqttClient.current?.subscribe(topic.value, { qos: topic.qos }, (error) => {
             if (error) {
               dispatch(addTestResult(`❌ Erreur d'abonnement à ${topic.value}: ${error.message}`))
@@ -228,7 +155,9 @@ const useMqttActions = () => {
       mqttClient.current.on('message', (topic, message) => {
         const messageString = message.toString()
         dispatch(incrementMessagesReceived())
-        dispatch(addTestResult(`📨 Reçu sur ${topic}: ${messageString}`))
+        
+        // Traiter le message pour mettre à jour le store
+        processMqttMessage(topic, messageString)
       })
 
       mqttClient.current.on('close', () => {
@@ -247,6 +176,11 @@ const useMqttActions = () => {
         dispatch(addTestResult('❌ Connexion MQTT perdue'))
       })
 
+      mqttClient.current.on('reconnect', () => {
+        dispatch(setConnecting())
+        dispatch(addTestResult('🔄 Tentative de reconnexion au broker MQTT...'))
+      })
+
     } catch (error) {
       dispatch(setConnectionError())
       dispatch(addTestResult(`❌ Erreur de création de connexion: ${error}`))
@@ -255,14 +189,17 @@ const useMqttActions = () => {
 
   const sendTestMessage = (testMessage: string) => {
     if (mqttClient.current && mqttClient.current.connected && testMessage.trim()) {
-      config.topics.forEach((topic: Topic) => {
+      config.topics.forEach((topic) => {
+        const messageData = {
+          message: testMessage,
+          timestamp: new Date().toISOString(),
+          station: config.stationName,
+          value: Math.random() * 1000 // Valeur aléatoire pour les tests
+        }
+        
         mqttClient.current!.publish(
           topic.value, 
-          JSON.stringify({
-            message: testMessage,
-            timestamp: new Date().toISOString(),
-            station: config.stationName
-          }), 
+          JSON.stringify(messageData), 
           { 
             qos: topic.qos, 
             retain: topic.retain 
@@ -278,14 +215,24 @@ const useMqttActions = () => {
 
   const disconnectMqtt = () => {
     if (mqttClient.current) {
-      mqttClient.current.end()
+      mqttClient.current.end(false, () => {
+        dispatch(setConnected(false))
+        dispatch(addTestResult('🔌 Connexion manuellement fermée'))
+      })
       mqttClient.current = null
+    } else {
+      dispatch(setConnected(false))
+      dispatch(addTestResult('ℹ️ Aucune connexion active à fermer'))
     }
-    dispatch(setConnected(false))
-    dispatch(addTestResult('🔌 Connexion manuellement fermée'))
   }
 
-  return { connectMqtt, sendTestMessage, disconnectMqtt, mqttClient: mqttClient.current }
+  return { 
+    connectMqtt, 
+    sendTestMessage, 
+    disconnectMqtt, 
+    mqttClient: mqttClient.current,
+    isConnected: mqttClient.current?.connected || false
+  }
 }
 
 // Hook personnalisé pour les tests API
@@ -297,6 +244,7 @@ const useApiActions = () => {
     try {
       dispatch(addTestResult('🌐 Test de l\'API REST en cours...'))
       const response = await fetch(`${config.restUrl}/status`)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
       dispatch(addTestResult(`✅ REST: ${JSON.stringify(data)}`))
     } catch (error) {
@@ -314,6 +262,7 @@ const useApiActions = () => {
           query: '{ status }'
         })
       })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
       dispatch(addTestResult(`✅ GraphQL: ${JSON.stringify(data)}`))
     } catch (error) {
@@ -324,8 +273,8 @@ const useApiActions = () => {
   return { testRestApi, testGraphql }
 }
 
-// Composant principal avec Redux
-function SettingsPageContent() {
+// Composant principal
+export default function SettingsPage() {
   const dispatch = useDispatch()
   const config = useSelector((state: RootState) => state.config)
   const connection = useSelector((state: RootState) => state.connection)
@@ -337,26 +286,18 @@ function SettingsPageContent() {
   const [testMessage, setTestMessage] = useState('Test message from React App')
   const [showPassword, setShowPassword] = useState(false)
 
-  const { connectMqtt, sendTestMessage, disconnectMqtt } = useMqttActions()
+  const { connectMqtt, sendTestMessage, disconnectMqtt, isConnected } = useMqttActions()
   const { testRestApi, testGraphql } = useApiActions()
 
-  // Connexion MQTT
-  useEffect(() => {
-    connectMqtt()
-    return () => {
-      disconnectMqtt()
-    }
-  }, [config.mqttUrl, config.mqttAuth.username, config.mqttAuth.password, config.mqttAuth.clientId])
-
-  const handleInputChange = (field: keyof ConnectionConfig, value: string | boolean) => {
+  const handleInputChange = (field: keyof typeof config, value: string | boolean) => {
     dispatch(updateConfig({ [field]: value }))
   }
 
-  const handleMqttAuthChange = (field: keyof MqttAuth, value: string) => {
+  const handleMqttAuthChange = (field: keyof typeof config.mqttAuth, value: string) => {
     dispatch(updateMqttAuth({ [field]: value }))
   }
 
-  const handleTopicChange = (id: string, field: keyof Topic, value: string | number | boolean) => {
+  const handleTopicChange = (id: string, field: keyof typeof config.topics[0], value: string | number | boolean) => {
     dispatch(updateTopic({ id, field, value }))
   }
 
@@ -386,8 +327,15 @@ function SettingsPageContent() {
   const loadConfiguration = () => {
     const saved = localStorage.getItem('connectionConfig')
     if (saved) {
-      dispatch(updateConfig(JSON.parse(saved)))
-      dispatch(addTestResult('📂 Configuration chargée'))
+      try {
+        const savedConfig = JSON.parse(saved)
+        dispatch(updateConfig(savedConfig))
+        dispatch(addTestResult('📂 Configuration chargée'))
+      } catch (error) {
+        dispatch(addTestResult('❌ Erreur lors du chargement de la configuration'))
+      }
+    } else {
+      dispatch(addTestResult('ℹ️ Aucune configuration sauvegardée'))
     }
   }
 
@@ -438,6 +386,11 @@ function SettingsPageContent() {
       case 'error': return 'Erreur'
       default: return 'Déconnecté'
     }
+  }
+
+  const formatTimestamp = (timestamp: number | null) => {
+    if (!timestamp) return 'N/A'
+    return new Date(timestamp).toLocaleTimeString()
   }
 
   return (
@@ -709,6 +662,7 @@ function SettingsPageContent() {
               <button
                 onClick={connectMqtt}
                 className={`px-3 py-1 rounded flex items-center gap-1 text-xs ${getConnectionStatusClass()} transition-colors`}
+                disabled={connection.connectionStatus === 'connecting'}
               >
                 {getConnectionIcon()}
                 {getConnectionText()}
@@ -717,9 +671,19 @@ function SettingsPageContent() {
               <button
                 onClick={testConnection}
                 className="px-3 py-1 bg-purple-600 rounded hover:bg-purple-700 transition-colors flex items-center gap-1 text-xs"
+                disabled={connection.connectionStatus === 'connecting'}
               >
                 <TestTube className="w-3 h-3" />
                 Tester
+              </button>
+
+              <button
+                onClick={disconnectMqtt}
+                className="px-3 py-1 bg-red-600 rounded hover:bg-red-700 transition-colors flex items-center gap-1 text-xs"
+                disabled={!connection.isConnected}
+              >
+                <WifiOff className="w-3 h-3" />
+                Déconnecter
               </button>
 
               <button
@@ -739,6 +703,7 @@ function SettingsPageContent() {
                 className="flex-1 bg-[#2c3235] border border-[#3a3f47] rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#33a2e5]"
                 placeholder="Message test..."
                 onKeyPress={(e) => e.key === 'Enter' && sendTestMessage(testMessage)}
+                disabled={!connection.isConnected}
               />
               <button
                 onClick={() => sendTestMessage(testMessage)}
@@ -748,6 +713,22 @@ function SettingsPageContent() {
                 <Play className="w-3 h-3" />
                 Envoyer
               </button>
+            </div>
+
+            {/* Statistiques de connexion */}
+            <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
+              <div className="bg-[#2c3235] p-2 rounded text-center">
+                <div className="font-semibold">{connection.connectionStats.messagesSent}</div>
+                <div className="text-[#8e9297]">Messages envoyés</div>
+              </div>
+              <div className="bg-[#2c3235] p-2 rounded text-center">
+                <div className="font-semibold">{connection.connectionStats.messagesReceived}</div>
+                <div className="text-[#8e9297]">Messages reçus</div>
+              </div>
+              <div className="bg-[#2c3235] p-2 rounded text-center">
+                <div className="font-semibold">{formatTimestamp(connection.connectionStats.lastMessageTimestamp)}</div>
+                <div className="text-[#8e9297]">Dernier message</div>
+              </div>
             </div>
 
             {/* Résultats des tests */}
@@ -830,6 +811,7 @@ function SettingsPageContent() {
           <button
             onClick={loadConfiguration}
             className="px-3 py-1 bg-[#33a2e5] rounded hover:bg-[#2b91d5] transition-colors flex items-center gap-1 text-xs"
+            disabled={connection.connectionStatus === 'connecting'}
           >
             <Download className="w-3 h-3" />
             Charger
@@ -837,14 +819,5 @@ function SettingsPageContent() {
         </div>
       </div>
     </div>
-  )
-}
-
-// Composant parent avec Provider Redux
-export default function SettingsPage() {
-  return (
-    <Provider store={store}>
-      <SettingsPageContent />
-    </Provider>
   )
 }
