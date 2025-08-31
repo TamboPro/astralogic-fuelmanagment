@@ -102,37 +102,45 @@ export default function TransactionTable({
 
   if (loading) {
     return (
-      <div className="flex-1 bg-[#202226] rounded-[0.5px] border border-[#2c3235] flex flex-col">
-        {/* Header avec skeleton */}
-        <div className="h-12 flex items-center justify-between bg-[#25292d] border-b border-[#2c3235] px-4">
-          <div className="h-4 w-40 bg-[#2c3235] rounded animate-pulse" />
-          <div className="flex items-center space-x-2">
-            <div className="h-7 w-24 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-7 w-32 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-7 w-16 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-7 w-16 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-7 w-16 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-7 w-16 bg-[#2c3235] rounded animate-pulse" />
-          </div>
-        </div>
-        
-        {/* Body skeleton */}
-        <div className="flex-1 overflow-auto p-4 space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-[#2c3235] rounded animate-pulse" />
+          <div className="flex-1 bg-[#202226] rounded-lg border border-[#2c3235] flex flex-col overflow-hidden shadow-lg">
+      {/* Header avec skeleton amélioré */}
+      <div className="h-14 flex items-center justify-between bg-gradient-to-r from-[#25292d] to-[#1f2327] border-b border-[#34393d] px-5">
+        <div className="h-5 w-48 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse" />
+        <div className="flex items-center space-x-3">
+          {[24, 32, 16, 16, 16, 16].map((width, i) => (
+            <div 
+              key={i} 
+              className="h-8 px-3 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse"
+              style={{ width: `${width}px` }}
+            />
           ))}
         </div>
+      </div>
+      
+      {/* Body skeleton avec variations d'opacité */}
+      <div className="flex-1 overflow-auto p-4 space-y-3">
+        {[...Array(7)].map((_, i) => (
+          <div 
+            key={i} 
+            className="h-14 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse"
+            style={{ 
+              opacity: `${0.9 - (i * 0.1)}`,
+              animationDelay: `${i * 0.05}s` 
+            }}
+          />
+        ))}
+      </div>
 
-        {/* Pagination skeleton */}
-        <div className="flex items-center justify-between bg-[#25292d] border-t border-[#2c3235] px-4 py-1 h-8">
-          <div className="h-4 w-20 bg-[#2c3235] rounded animate-pulse" />
-          <div className="flex space-x-2">
-            <div className="h-6 w-16 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-6 w-6 bg-[#2c3235] rounded animate-pulse" />
-            <div className="h-6 w-16 bg-[#2c3235] rounded animate-pulse" />
-          </div>
+      {/* Pagination skeleton amélioré */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-[#25292d] to-[#1f2327] border-t border-[#34393d] px-5 py-2 h-10">
+        <div className="h-4 w-28 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse" />
+        <div className="flex space-x-3">
+          <div className="h-7 w-20 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse" />
+          <div className="h-7 w-7 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse" />
+          <div className="h-7 w-20 bg-gradient-to-r from-[#2c3235] to-[#353b3f] rounded-md animate-pulse" />
         </div>
       </div>
+    </div>
     )
   }
 

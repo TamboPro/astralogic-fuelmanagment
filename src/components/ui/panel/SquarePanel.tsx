@@ -37,13 +37,13 @@ const SquarePanel: React.FC<SquarePanelProps> = ({
   mainValueColor = '#c7d0d9',
   subtitleColor = '#8e9297'
 }) => {
-  // Mapping des tailles de texte
+  // Mapping des tailles de texte responsive
   const sizeClasses = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
-    xl: 'text-3xl',
-    '2xl': 'text-4xl'
+    sm: 'text-sm md:text-base lg:text-lg',
+    md: 'text-base md:text-lg lg:text-xl',
+    lg: 'text-lg md:text-xl lg:text-2xl',
+    xl: 'text-xl md:text-2xl lg:text-3xl',
+    '2xl': 'text-2xl md:text-3xl lg:text-4xl'
   }
 
   // Styles inline pour les dimensions et couleurs
@@ -64,7 +64,7 @@ const SquarePanel: React.FC<SquarePanelProps> = ({
     <div 
       className={`
         rounded-[0.5px] border
-        flex flex-col items-center justify-between p-3
+        flex flex-col items-center justify-between p-2 md:p-3
         ${className}
       `}
       style={panelStyle}
@@ -72,7 +72,7 @@ const SquarePanel: React.FC<SquarePanelProps> = ({
       {/* Titre en haut */}
       <div className="text-center flex-shrink-0">
         <h3 
-          className="text-sm font-regular leading-tight"
+          className="text-xs md:text-sm font-regular leading-tight"
           style={{ color: titleColor }}
         >
           {title}
@@ -80,11 +80,11 @@ const SquarePanel: React.FC<SquarePanelProps> = ({
       </div>
 
       {/* Contenu central */}
-      <div className="flex flex-col items-center justify-center flex-1 w-full py-2">
+      <div className="flex flex-col items-center justify-center flex-1 w-full py-1 md:py-2">
         {/* Sous-titre optionnel */}
         {subtitle && (
           <p 
-            className="text-xs font-regular mb-1 leading-tight"
+            className="text-[10px] md:text-xs font-regular mb-1 leading-tight"
             style={{ color: subtitleColor }}
           >
             {subtitle}
@@ -103,7 +103,7 @@ const SquarePanel: React.FC<SquarePanelProps> = ({
       {/* Texte en bas */}
       <div className="text-center flex-shrink-0">
         <p 
-          className="text-xs font-regular leading-tight"
+          className="text-[10px] md:text-xs font-regular leading-tight"
           style={{ color: topTextColor }}
         >
           {topText}

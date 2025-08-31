@@ -97,18 +97,18 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
         `}
       >
         {/* Premier bloc: 56px de hauteur avec icône active */}
-        <div className="h-10 bg-black border-b border-[#2c3235] flex items-center justify-center">
-          <div className="flex items-center justify-center w-8 h-8 relative">
-            {/* Icône active normale */}
-            <div>
-              {(() => {
-                const activeIconData = [...topIcons, ...bottomIcons].find(icon => icon.id === activeIcon);
-                const IconComponent = activeIconData?.icon || LayoutDashboard;
-                return <IconComponent className="w-6 h-6 text-[#33a2e5]" />;
-              })()}
-            </div>
-          </div>
-        </div>
+       <div className="h-10 bg-gray-900 border-b border-gray-700 flex items-center justify-center">
+  <div className="flex items-center justify-center w-8 h-8 relative">
+    {/* Icône active normale */}
+    <div>
+      {(() => {
+        const activeIconData = [...topIcons, ...bottomIcons].find(icon => icon.id === activeIcon);
+        const IconComponent = activeIconData?.icon || LayoutDashboard;
+        return <IconComponent className="w-6 h-6 text-blue-400" />;
+      })()}
+    </div>
+  </div>
+</div>
 
         {/* Second bloc: occupe le reste de la hauteur */}
         <div className="flex-1 flex flex-col justify-between border-r border-[#2c3235] ">
