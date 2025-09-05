@@ -59,12 +59,12 @@ import Toolbox from '@/components/toolbox/Toolbox'
 import ToolboxCategory from '@/components/toolbox/ToolboxCategory'
 import ToolboxItem from '@/components/toolbox/ToolboxItem'
 
-// Icônes réduites de moitié
-const Esp32Icon = () => <div className="w-3 h-3 bg-blue-500 rounded"></div>
-const GpioIcon = () => <div className="w-3 h-3 bg-green-500 rounded"></div>
-const TimerIcon = () => <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-const MqttIcon = () => <div className="w-3 h-3 bg-purple-500 rounded"></div>
-const SensorIcon = () => <div className="w-3 h-3 bg-red-500 rounded"></div>
+// Icônes dans le style chaiNNer
+const Esp32Icon = () => <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
+const GpioIcon = () => <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
+const TimerIcon = () => <div className="w-4 h-4 bg-yellow-500 rounded-sm"></div>
+const MqttIcon = () => <div className="w-4 h-4 bg-purple-500 rounded-sm"></div>
+const SensorIcon = () => <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
 
 export default function MicrocontrollerPage() {
   const config = useSelector((state: RootState) => state.config)
@@ -97,43 +97,59 @@ export default function MicrocontrollerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-[#c7d0d9] flex flex-col">
+    <div className="min-h-screen bg-[#0d1117] text-[#c7d0d9] flex flex-col overflow-hidden">
       <HeaderDefault 
         title="Programmation Graphique ESP32" 
         stationName={`[${config.stationName}]`} 
       />
       
-      <div className="flex flex-1" style={{ height: 'calc(100vh - 64px)' }}>
-        {/* Toolbox latérale - largeur réduite */}
+      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
+        {/* Toolbox latérale - style chaiNNer */}
         <div 
-          className={`bg-[#1a1d21] transition-all duration-300 overflow-y-auto ${isToolboxOpen ? 'w-40' : 'w-7'}`}
-          style={{ minHeight: '100%' }}
+          className={`bg-[#161b22] border-r border-[#30363d] transition-all duration-300 overflow-y-auto flex flex-col ${isToolboxOpen ? 'w-60' : 'w-10'}`}
         >
           {isToolboxOpen ? (
-            <Toolbox>
-              <div className="p-2">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-sm font-semibold">Composants</h2>
+            <div className="flex flex-col h-full">
+              <div className="p-3 border-b border-[#30363d]">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-sm font-medium text-[#e6edf3]">Composants</h2>
                   <button 
                     onClick={() => setIsToolboxOpen(false)}
-                    className="text-gray-400 hover:text-white p-0.5 rounded text-xs"
+                    className="text-[#7d8590] hover:text-[#e6edf3] p-1 rounded hover:bg-[#30363d]"
+                    title="Réduire la boîte à outils"
                   >
-                    ◀
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </button>
                 </div>
                 
+                {/* Barre de recherche style chaiNNer */}
+                <div className="mt-3 relative">
+                  <input 
+                    type="text" 
+                    placeholder="Rechercher des composants..." 
+                    className="w-full bg-[#0d1117] border border-[#30363d] rounded-md py-1.5 px-2.5 text-sm text-[#e6edf3] placeholder-[#7d8590] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <svg className="absolute right-2 top-1.5 text-[#7d8590]" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-2">
                 <ToolboxCategory title="Cartes ESP32" defaultOpen={true}>
                   <ToolboxItem 
                     icon={<Esp32Icon />}
                     label="ESP32-WROOM"
                     onDragStart={(e) => onDragStart(e, 'esp32')}
-                    onClick={() => addNode('esp32', { x: 50, y: 50 })}
+                    onClick={() => addNode('esp32', { x: 250, y: 150 })}
                   />
                   <ToolboxItem 
                     icon={<Esp32Icon />}
                     label="ESP32-S3"
                     onDragStart={(e) => onDragStart(e, 'esp32')}
-                    onClick={() => addNode('esp32', { x: 50, y: 50 })}
+                    onClick={() => addNode('esp32', { x: 250, y: 150 })}
                   />
                 </ToolboxCategory>
                 
@@ -142,19 +158,19 @@ export default function MicrocontrollerPage() {
                     icon={<GpioIcon />}
                     label="Sortie Numérique"
                     onDragStart={(e) => onDragStart(e, 'gpioOutput')}
-                    onClick={() => addNode('gpioOutput', { x: 50, y: 50 })}
+                    onClick={() => addNode('gpioOutput', { x: 250, y: 150 })}
                   />
                   <ToolboxItem 
                     icon={<GpioIcon />}
                     label="Entrée Numérique"
                     onDragStart={(e) => onDragStart(e, 'gpioInput')}
-                    onClick={() => addNode('gpioInput', { x: 50, y: 50 })}
+                    onClick={() => addNode('gpioInput', { x: 250, y: 150 })}
                   />
                   <ToolboxItem 
                     icon={<GpioIcon />}
                     label="PWM"
                     onDragStart={(e) => onDragStart(e, 'gpioOutput')}
-                    onClick={() => addNode('gpioOutput', { x: 50, y: 50 })}
+                    onClick={() => addNode('gpioOutput', { x: 250, y: 150 })}
                   />
                 </ToolboxCategory>
                 
@@ -163,7 +179,7 @@ export default function MicrocontrollerPage() {
                     icon={<MqttIcon />}
                     label="MQTT"
                     onDragStart={(e) => onDragStart(e, 'mqtt')}
-                    onClick={() => addNode('mqtt', { x: 50, y: 50 })}
+                    onClick={() => addNode('mqtt', { x: 250, y: 150 })}
                   />
                 </ToolboxCategory>
                 
@@ -172,13 +188,13 @@ export default function MicrocontrollerPage() {
                     icon={<SensorIcon />}
                     label="Température"
                     onDragStart={(e) => onDragStart(e, 'sensor')}
-                    onClick={() => addNode('sensor', { x: 50, y: 50 })}
+                    onClick={() => addNode('sensor', { x: 250, y: 150 })}
                   />
                   <ToolboxItem 
                     icon={<SensorIcon />}
                     label="Mouvement"
                     onDragStart={(e) => onDragStart(e, 'sensor')}
-                    onClick={() => addNode('sensor', { x: 50, y: 50 })}
+                    onClick={() => addNode('sensor', { x: 250, y: 150 })}
                   />
                 </ToolboxCategory>
                 
@@ -187,44 +203,49 @@ export default function MicrocontrollerPage() {
                     icon={<TimerIcon />}
                     label="Minuterie"
                     onDragStart={(e) => onDragStart(e, 'timer')}
-                    onClick={() => addNode('timer', { x: 50, y: 50 })}
+                    onClick={() => addNode('timer', { x: 250, y: 150 })}
                   />
                   <ToolboxItem 
                     icon={<TimerIcon />}
                     label="Délai"
                     onDragStart={(e) => onDragStart(e, 'timer')}
-                    onClick={() => addNode('timer', { x: 50, y: 50 })}
+                    onClick={() => addNode('timer', { x: 250, y: 150 })}
                   />
                 </ToolboxCategory>
               </div>
-            </Toolbox>
+            </div>
           ) : (
-            <div className="p-1">
+            <div className="p-2 flex flex-col items-center space-y-3 mt-2">
               <button 
                 onClick={() => setIsToolboxOpen(true)}
-                className="text-gray-400 hover:text-white p-1 rounded mb-1 w-full text-left text-xs"
+                className="text-[#7d8590] hover:text-[#e6edf3] p-1.5 rounded-md hover:bg-[#30363d]"
+                title="Ouvrir la boîte à outils"
               >
-                ▶
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
-              <div className="space-y-1">
-                <button className="p-1 w-full flex justify-center text-gray-400 hover:text-white">
-                  <Esp32Icon />
-                </button>
-                <button className="p-1 w-full flex justify-center text-gray-400 hover:text-white">
-                  <GpioIcon />
-                </button>
-                <button className="p-1 w-full flex justify-center text-gray-400 hover:text-white">
-                  <MqttIcon />
-                </button>
-                <button className="p-1 w-full flex justify-center text-gray-400 hover:text-white">
-                  <TimerIcon />
-                </button>
-              </div>
+              <div className="w-full border-t border-[#30363d] my-1"></div>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Cartes ESP32">
+                <Esp32Icon />
+              </button>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" titleGPIO>
+                <GpioIcon />
+              </button>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Communication">
+                <MqttIcon />
+              </button>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Capteurs">
+                <SensorIcon />
+              </button>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Temporisation">
+                <TimerIcon />
+              </button>
             </div>
           )}
         </div>
         
-        {/* Zone d'édition principale */}
+        {/* Zone d'édition principale style chaiNNer */}
         <div className="flex-1 relative bg-[#0d1117]">
           <ReactFlow
             nodes={nodes}
@@ -236,24 +257,49 @@ export default function MicrocontrollerPage() {
             fitView
           >
             <Background 
-              color="#2d3748" 
-              gap={10} 
-              size={0.5} 
+              color="#21262d" 
+              gap={20} 
+              size={1} 
               variant={BackgroundVariant.Dots} 
             />
-            <Controls />
+            <Controls 
+              style={{
+                display: 'flex',
+                backgroundColor: '#161b22',
+                border: '1px solid #30363d',
+                borderRadius: '6px',
+                overflow: 'hidden'
+              }}
+            />
             <MiniMap 
-              nodeColor="#3182ce"
+              nodeColor="#1f6feb"
               maskColor="rgba(13, 17, 23, 0.6)"
               style={{
-                width: 100,
-                height: 75
+                backgroundColor: '#161b22',
+                border: '1px solid #30363d',
+                borderRadius: '6px',
+                width: 150,
+                height: 100
               }}
             />
             
-            <Panel position="top-right" className="bg-[#1a1d21] rounded p-1">
-              <button className="px-1.5 py-0.5 bg-blue-600 rounded mr-1 text-xs">Sauvegarder</button>
-              <button className="px-1.5 py-0.5 bg-green-600 rounded text-xs">Téléverser</button>
+            <Panel position="top-right" className="bg-[#161b22] rounded-md border border-[#30363d] p-1.5 flex space-x-2">
+              <button className="px-3 py-1.5 bg-[#238636] hover:bg-[#2ea043] rounded-md text-sm font-medium text-white flex items-center">
+                <svg className="mr-1.5" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 21v-8H7v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Sauvegarder
+              </button>
+              <button className="px-3 py-1.5 bg-[#1f6feb] hover:bg-[#2c83f3] rounded-md text-sm font-medium text-white flex items-center">
+                <svg className="mr-1.5" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Téléverser
+              </button>
             </Panel>
           </ReactFlow>
         </div>
