@@ -103,11 +103,9 @@ const ConfigModal = ({ isOpen, onClose, feature, onUpdateConfig, onDelete }: Con
   }
 
   const getCheckboxColor = (pin: number) => {
-    // Une fois qu'une broche est sélectionnée, elle garde sa couleur d'origine
     const isChecked = config.pins?.includes(pin) || false
     if (!isChecked) return 'border-gray-600 bg-[#2a2e33]'
     
-    // Couleur basée sur le mode actuel
     switch (config.mode) {
       case 'output': return 'border-blue-400 bg-blue-400/20'
       case 'input': return 'border-green-400 bg-green-400/20'
@@ -185,7 +183,7 @@ const ConfigModal = ({ isOpen, onClose, feature, onUpdateConfig, onDelete }: Con
                         if (e.target.checked) {
                           setConfig({ ...config, pins: [...pins, pin] })
                         } else {
-                          setConfig({ ...config, pins: pins.filter(p => p !== pin) })
+                          setConfig({ ...config, pins: pins.filter((p: number) => p !== pin) })
                         }
                       }}
                       className="mr-2 accent-blue-500"
@@ -231,7 +229,7 @@ const ConfigModal = ({ isOpen, onClose, feature, onUpdateConfig, onDelete }: Con
                           if (e.target.checked) {
                             setConfig({ ...config, pins: [...pins, pin] })
                           } else {
-                            setConfig({ ...config, pins: pins.filter(p => p !== pin) })
+                            setConfig({ ...config, pins: pins.filter((p: number) => p !== pin) })
                           }
                         }}
                         className="mr-2 accent-blue-500"
@@ -332,7 +330,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
     }
   }
 
-  // Récupérer les broches GPIO configurées
   const getGpioPins = () => {
     const gpioFeature = features.find(f => f.id === 'gpio')
     return gpioFeature?.config?.pins || []
@@ -343,7 +340,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
   return (
     <>
       <div className="px-4 py-3 bg-[#1a1d21] border border-gray-700 rounded-lg shadow-xl min-w-[140px] relative">
-        {/* En-tête du nœud */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-3">
@@ -357,7 +353,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
             </div>
           </div>
           
-          {/* Bouton d'ajout de fonctionnalité */}
           <button
             onClick={() => setIsModalOpen(true)}
             className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-all duration-200 hover:scale-110"
@@ -366,7 +361,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
           </button>
         </div>
 
-        {/* Liste des fonctionnalités */}
         {features.length > 0 && (
           <div className="border-t border-gray-700 pt-3 mt-3">
             <div className="text-gray-400 text-xs font-medium mb-2">Fonctionnalités:</div>
@@ -394,7 +388,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
           </div>
         )}
 
-        {/* Bordure colorée pour les broches GPIO */}
         {gpioPins.length > 0 && (
           <div className="absolute inset-0 border-2 rounded-lg pointer-events-none" style={{
             borderColor: '#3B82F6',
@@ -402,7 +395,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
           }} />
         )}
 
-        {/* Handles pour les connexions */}
         <Handle
           type="target"
           position={Position.Top}
@@ -424,7 +416,6 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
           className="w-2 h-2 bg-blue-400 border-2 border-white"
         />
 
-        {/* Handles supplémentaires pour les broches GPIO */}
         {gpioPins.map((pin: number, index: number) => (
           <Handle
             key={`gpio-${pin}`}
@@ -441,14 +432,12 @@ const ESP32Node = ({ data }: ESP32NodeProps) => {
         ))}
       </div>
 
-      {/* Modal d'ajout de fonctionnalités */}
       <FeatureModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSelectFeature={handleAddFeature}
       />
 
-      {/* Modal de configuration */}
       {selectedFeature && (
         <ConfigModal
           isOpen={isConfigModalOpen}
