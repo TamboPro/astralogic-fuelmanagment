@@ -229,7 +229,7 @@ export default function MicrocontrollerPage() {
               <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Cartes ESP32">
                 <Esp32Icon />
               </button>
-              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" titleGPIO>
+              <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="GPIOS">
                 <GpioIcon />
               </button>
               <button className="p-1.5 rounded-md hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3]" title="Communication">
